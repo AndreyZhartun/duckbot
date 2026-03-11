@@ -2,7 +2,7 @@
 title: Duck Bot
 emoji: 🐸
 colorFrom: green
-colorTo: brown
+colorTo: gray
 sdk: docker
 pinned: false
 ---
