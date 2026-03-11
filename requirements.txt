@@ -1,4 +1,8 @@
 fastapi
+uvicorn
+httptools
+websockets
+python-dotenv
 python-telegram-bot
 supabase
 apscheduler
