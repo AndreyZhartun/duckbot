@@ -51,12 +51,11 @@ def setup_application(token: str) -> Application:
 async def set_bot_commands(app: Application) -> None:
     """
     Registers the command list that appears in Telegram's menu UI.
-    Call this once after the bot is initialised.
     """
     commands = [
-        BotCommand("start", "Main menu"),
-        BotCommand("profile", "View and edit your profile"),
-        BotCommand("help", "Help"),
+        BotCommand("start", "Главное меню"),
+        BotCommand("profile", "Мой профиль"),
+        BotCommand("help", "Помощь"),
         # BotCommand("events", "Browse upcoming events"),
         # BotCommand("myevents", "Events you're signed up for"),
         # BotCommand("create_event", "Create a new event (hosts)"),

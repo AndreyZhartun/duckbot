@@ -24,6 +24,8 @@ from models.models import User, UserRole
 from services import db
 from constants import BOT_VERSION
 
+from utils.validation import VALIDATION
+
 logger = logging.getLogger(__name__)
 
 # Conversation state
@@ -45,7 +47,7 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
     user_buttons = [
         # InlineKeyboardButton("📅 Events", switch_inline_query_current_chat="/events"),
         # InlineKeyboardButton("🎟 My Signups", switch_inline_query_current_chat="/myevents"),
-        InlineKeyboardButton("👤 Мой Профиль", switch_inline_query_current_chat="/profile"),
+        InlineKeyboardButton("👤 Мой профиль", switch_inline_query_current_chat="/profile"),
     ]
 
     host_buttons = [
@@ -75,10 +77,10 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
 def _role_label(role: UserRole) -> str:
     return {
         UserRole.USER: "👤 Посетитель",
-        UserRole.TRUSTED: "⭐ Trusted",
-        UserRole.HOST: "🎪 Host",
-        UserRole.ADMIN: "🛡 Admin",
-        UserRole.OWNER: "👑 Owner",
+        UserRole.TRUSTED: "⭐ Доверенный",
+        UserRole.HOST: "🎲 Организатор",
+        UserRole.ADMIN: "⚔️ Администратор",
+        UserRole.OWNER: "🔧 Создатель",
     }.get(role, role.value)
 
 
@@ -97,7 +99,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         # TODO make an util fn that escapes the user object fully
         f"<b>Привет, {escape(user.display_name)}!</b>\n\n"
-        f"Это УткоБот 🐸 (версия {BOT_VERSION})*\n\n"
+        f"Это УткоБот 🐸 (версия {BOT_VERSION})\n\n"
         f"Ваша роль: {_role_label(user.role)}\n\n"
         f"Доступные команды:",
         parse_mode=ParseMode.HTML,
@@ -117,22 +119,18 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         tg_username=tg_user.username,
     )
 
-    # TODO dont really need to show username
-    username_line = f"Telegram: @{escape(user.tg_username)}\n" if user.tg_username else ""
-
     member_since = (
         user.created_at.strftime("%d %b %Y")
         if user.created_at else "—"
     )
 
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✏️ Change display name", callback_data=CB_CHANGE_NAME)
+        InlineKeyboardButton("✏️ Поменять имя", callback_data=CB_CHANGE_NAME)
     ]])
 
     await update.message.reply_text(
-        f"*Ваш Профиль*\n\n"
-        f"Отображаемое имя: *{escape(user.display_name)}*\n"
-        f"{username_line}"
+        f"<b>Ваш Профиль</b>\n\n"
+        f"Отображаемое имя: <b>{escape(user.display_name)}</b>\n"
         f"Роль: {_role_label(user.role)}\n"
         f"Создан: {member_since}",
         parse_mode=ParseMode.HTML,
@@ -148,8 +146,8 @@ async def cb_change_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
-        "What would you like your display name to be?\n\n"
-        "Send /cancel to keep your current name.",
+        f"Введите новое имя (от {VALIDATION.get('MIN_NAME_LENGTH')} до {VALIDATION.get('MAX_NAME_LENGTH')} символов)\n\n"
+        "Введите /cancel для отмены",
     )
     return WAITING_FOR_NAME
 
@@ -158,23 +156,23 @@ async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     new_name = update.message.text.strip()
 
     if len(new_name) < 2:
-        await update.message.reply_text("Name must be at least 2 characters. Try again:")
+        await update.message.reply_text(f"Имя должно быть не меньше {VALIDATION.get('MIN_NAME_LENGTH')} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
     if len(new_name) > 64:
-        await update.message.reply_text("Name must be 64 characters or fewer. Try again:")
+        await update.message.reply_text(f"Имя должно быть не больше {VALIDATION.get('MAX_NAME_LENGTH')} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
     user = await db.update_display_name(update.effective_user.id, new_name)
     await update.message.reply_text(
-        f"✅ Display name updated to *{escape(user.display_name)}*.",
+        f"Имя изменено на: *{escape(user.display_name)}*.",
         parse_mode=ParseMode.HTML,
     )
     return ConversationHandler.END
 
 
 async def cancel_name_change(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Name change cancelled.")
+    await update.message.reply_text("Изменение имени отменено")
     return ConversationHandler.END
 
 
