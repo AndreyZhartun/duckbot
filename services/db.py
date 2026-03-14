@@ -1,16 +1,6 @@
-"""
-services/db.py
-All database queries. Uses SQLAlchemy async ORM — all queries are
-parameterised automatically, preventing SQL injection.
-
-This file currently covers the users table only.
-Events, signups and templates will be added in subsequent steps.
-"""
-
 from __future__ import annotations
 
 import logging
-import os
 from typing import Optional
 
 from sqlalchemy import select, update
@@ -30,6 +20,7 @@ def _orm_to_user(row: UserORM) -> User:
     return User(
         telegram_id=row.telegram_id,
         display_name=row.display_name,
+        tg_username=row.tg_username,
         role=UserRole(row.role),
         created_at=row.created_at,
         updated_at=row.updated_at,
@@ -40,41 +31,61 @@ def _orm_to_user(row: UserORM) -> User:
 # Users
 # ---------------------------------------------------------------------------
 
-async def get_or_create_user(telegram_id: int, full_name: str) -> tuple[User, bool]:
+async def get_or_create_user(
+    telegram_id: int,
+    full_name: str,
+    tg_username: Optional[str] = None,
+) -> User:
     """
     Fetches the user if they exist, otherwise creates them with default role.
-    Returns (user, created) where created=True means it's their first time.
-
+    Always syncs tg_username with the latest value from Telegram.
     full_name is only used on first insert as the default display_name.
-    After that the stored display_name is always used.
-    Users can customise display_name in the bot.
     """
     async with get_db() as db:
         result = await db.execute(
             select(UserORM).where(UserORM.telegram_id == telegram_id)
         )
+
         row = result.scalar_one_or_none()
 
-        # found an existing user
         if row:
-            return _orm_to_user(row), False
+            # Sync username if it changed or was missing
+            if row.tg_username != tg_username:
+                await db.execute(
+                    update(UserORM)
+                    .where(UserORM.telegram_id == telegram_id)
+                    .values(tg_username=tg_username)
+                )
+                await db.flush()
+                await db.refresh(row)
+            return _orm_to_user(row)
 
-        # First time — role as USER
-        # owner_id = int(os.environ.get("OWNER_TELEGRAM_ID", "0"))
-        # role = UserRole.OWNER if telegram_id == owner_id else UserRole.USER
+        # First time — USER role
         role = UserRole.USER
 
         new_user = UserORM(
             telegram_id=telegram_id,
             display_name=full_name,
+            tg_username=tg_username,
             role=role.value,
         )
 
         db.add(new_user)
-
-        await db.flush()   # get DB-generated timestamps before commit
+        await db.flush()
         await db.refresh(new_user)
-        return _orm_to_user(new_user), True
+        return _orm_to_user(new_user)
+
+
+async def get_user_by_username(tg_username: str) -> Optional[User]:
+    """Look up a user by their Telegram @username (strip @ if present)."""
+    username = tg_username.lstrip("@")
+    async with get_db() as db:
+        result = await db.execute(
+            select(UserORM).where(UserORM.tg_username == username)
+        )
+
+        row = result.scalar_one_or_none()
+        return _orm_to_user(row) if row else None
 
 
 async def get_user(telegram_id: int) -> Optional[User]:
@@ -93,11 +104,9 @@ async def update_display_name(telegram_id: int, new_name: str) -> User:
             .where(UserORM.telegram_id == telegram_id)
             .values(display_name=new_name)
         )
-
         result = await db.execute(
             select(UserORM).where(UserORM.telegram_id == telegram_id)
         )
-        
         row = result.scalar_one()
         return _orm_to_user(row)
 

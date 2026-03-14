@@ -1,0 +1,1 @@
+BOT_VERSION: str = '0.3-альфа'

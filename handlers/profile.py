@@ -1,3 +1,9 @@
+"""
+Handles user identity and the /start greeting:
+  /start   — personalised greeting with role-aware inline buttons
+  /profile — show current profile with option to change display name
+"""
+
 from __future__ import annotations
 
 import logging
@@ -14,6 +20,7 @@ from telegram.ext import (
 
 from models.models import User, UserRole
 from services import db
+from constants import BOT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +40,10 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
     Returns an inline keyboard showing only the actions available to this role.
     Buttons are grouped into rows of 2 for readability.
     """
-    # Every user sees these
     user_buttons = [
         # InlineKeyboardButton("📅 Events", switch_inline_query_current_chat="/events"),
         # InlineKeyboardButton("🎟 My Signups", switch_inline_query_current_chat="/myevents"),
-        InlineKeyboardButton("👤 Мой профиль", switch_inline_query_current_chat="/profile"),
+        InlineKeyboardButton("👤 Мой Профиль", switch_inline_query_current_chat="/profile"),
     ]
 
     host_buttons = [
@@ -60,7 +66,6 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
     # if role in (UserRole.ADMIN, UserRole.OWNER):
     #     all_buttons += admin_buttons
 
-    # Group into rows of 2
     rows = [all_buttons[i:i + 2] for i in range(0, len(all_buttons), 2)]
     return InlineKeyboardMarkup(rows)
 
@@ -68,7 +73,7 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
 def _role_label(role: UserRole) -> str:
     return {
         UserRole.USER: "👤 Посетитель",
-        UserRole.TRUSTED: "👤 Trusted",
+        UserRole.TRUSTED: "⭐ Trusted",
         UserRole.HOST: "🎪 Host",
         UserRole.ADMIN: "🛡 Admin",
         UserRole.OWNER: "👑 Owner",
@@ -81,28 +86,17 @@ def _role_label(role: UserRole) -> str:
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_user = update.effective_user
-
-    user, is_new = await db.get_or_create_user(
+    user = await db.get_or_create_user(
         telegram_id=tg_user.id,
         full_name=tg_user.full_name,
+        tg_username=tg_user.username,
     )
 
-    if is_new:
-        greeting = (
-            f"☕ *Привет, {user.display_name}!*\n\n"
-            f"Это УткоБот 🐸 (версия 0.1-альфа)\n"
-            f"Ваша роль: {_role_label(user.role)}\n\n"
-            f"Here's what you can do:"
-        )
-    else:
-        greeting = (
-            f"☕ *Снова привет, {user.display_name}!*\n\n"
-            f"Role: {_role_label(user.role)}\n\n"
-            f"Here's what you can do:"
-        )
-
     await update.message.reply_text(
-        greeting,
+        f"*Привет, {user.display_name}!*\n\n"
+        f"Это УткоБот 🐸 (версия {BOT_VERSION})*\n\n"
+        f"Ваша роль: {_role_label(user.role)}\n\n"
+        f"Доступные команды:",
         parse_mode="Markdown",
         reply_markup=_build_menu(user.role),
     )
@@ -114,20 +108,24 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_user = update.effective_user
-    user, _ = await db.get_or_create_user(
+    user = await db.get_or_create_user(
         telegram_id=tg_user.id,
         full_name=tg_user.full_name,
+        tg_username=tg_user.username,
     )
+
+    username_line = f"Telegram: @{user.tg_username}\n" if user.tg_username else ""
 
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("✏️ Change display name", callback_data=CB_CHANGE_NAME)
     ]])
 
     await update.message.reply_text(
-        f"*Your Profile*\n\n"
-        f"Display name: *{user.display_name}*\n"
-        f"Role: {_role_label(user.role)}\n"
-        f"Member since: {user.created_at.strftime('%d %b %Y') if user.created_at else '—'}",
+        f"*Ваш Профиль*\n\n"
+        f"Отображаемое имя: *{user.display_name}*\n"
+        f"{username_line}"
+        f"Роль: {_role_label(user.role)}\n"
+        f"Создан: {user.created_at.strftime('%d %b %Y') if user.created_at else '—'}",
         parse_mode="Markdown",
         reply_markup=keyboard,
     )

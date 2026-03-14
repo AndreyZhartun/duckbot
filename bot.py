@@ -8,13 +8,14 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 # from handlers import admin, events, host, templates
 from handlers import profile
 from services.database import close_engine
+from constants import BOT_VERSION
 
 logger = logging.getLogger(__name__)
 
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     output: list[str] = [
-        "Привет! Это УткоБот 🐸 (версия 0.1-альфа)",
+        f"Привет! Это УткоБот 🐸 (версия {BOT_VERSION})",
         "Здесь позже будет полезная информация по боту"
     ]
 
