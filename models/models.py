@@ -18,12 +18,12 @@ class UserRole(str, Enum):
 @dataclass
 class User:
     telegram_id: int
-    # users can be added by username
-    tg_username: Optional[str] = None
     # bot-specific name, editable by user
     # stays the same even if the user changes telegram name
     display_name: str
     role: UserRole
+    # users can be added by username
+    tg_username: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
