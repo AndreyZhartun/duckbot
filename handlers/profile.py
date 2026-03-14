@@ -24,7 +24,8 @@ from models.models import User, UserRole
 from services import db
 from constants import BOT_VERSION
 
-from utils.validation import VALIDATION
+from utils.validation import MIN_NAME_LENGTH, MAX_NAME_LENGTH
+from utils.messages import COMMAND_END_MESSAGE_FOOTER
 
 logger = logging.getLogger(__name__)
 
@@ -146,8 +147,8 @@ async def cb_change_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
-        f"Введите новое имя (от {VALIDATION.get('MIN_NAME_LENGTH')} до {VALIDATION.get('MAX_NAME_LENGTH')} символов)\n\n"
-        "Введите /cancel для отмены",
+        f"Введите новое имя (от {MIN_NAME_LENGTH} до {MAX_NAME_LENGTH} символов).\n\n"
+        "/cancel - оставить текущее имя",
     )
     return WAITING_FOR_NAME
 
@@ -156,23 +157,27 @@ async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     new_name = update.message.text.strip()
 
     if len(new_name) < 2:
-        await update.message.reply_text(f"Имя должно быть не меньше {VALIDATION.get('MIN_NAME_LENGTH')} символов. Введите имя еще раз:")
+        await update.message.reply_text(f"Имя должно быть не меньше {MIN_NAME_LENGTH} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
     if len(new_name) > 64:
-        await update.message.reply_text(f"Имя должно быть не больше {VALIDATION.get('MAX_NAME_LENGTH')} символов. Введите имя еще раз:")
+        await update.message.reply_text(f"Имя должно быть не больше {MAX_NAME_LENGTH} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
     user = await db.update_display_name(update.effective_user.id, new_name)
     await update.message.reply_text(
-        f"Имя изменено на: *{escape(user.display_name)}*.",
+        f"Имя изменено на: <b>{escape(user.display_name)}</b>\n",
+        COMMAND_END_MESSAGE_FOOTER,
         parse_mode=ParseMode.HTML,
     )
     return ConversationHandler.END
 
 
 async def cancel_name_change(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Изменение имени отменено")
+    await update.message.reply_text(
+        f"Изменение имени отменено\n",
+        COMMAND_END_MESSAGE_FOOTER
+        )
     return ConversationHandler.END
 
 

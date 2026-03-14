@@ -1,0 +1,1 @@
+COMMAND_END_MESSAGE_FOOTER = '/start - главное меню'
