@@ -1,9 +1,3 @@
-"""
-bot.py
-Wires all handlers together into a single Application instance.
-Imported by app.py (the FastAPI server) which calls setup_application().
-"""
-
 from __future__ import annotations
 
 import logging
@@ -12,43 +6,24 @@ from telegram import BotCommand, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # from handlers import admin, events, host, templates
+from handlers import profile
+from services.database import close_engine
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# /start  and  /help — open to everyone
-# ---------------------------------------------------------------------------
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     output: list[str] = [
-        "Привет! Это УткоБот 🐸 (версия 0.1-альфа)\n",
-        "Доступные команды:",
-        "/help - показать это сообщение"
+        "Привет! Это УткоБот 🐸 (версия 0.1-альфа)",
+        "Здесь позже будет полезная информация по боту"
     ]
 
     reply = '\n'.join(output)
-
-    # "☕ *Welcome to the Time Café bot!*\n\n"
-    # "Here's what you can do:\n"
-    # "/events — browse upcoming events\n"
-    # "/myevents — events you're signed up for\n"
-    # "/help — show this message\n\n"
-    # "If you're a host:\n"
-    # "/create\\_event — create a new event\n"
-    # "/my\\_hosted — manage your hosted events\n"
-    # "/create\\_template — set up a weekly recurring event\n"
-    # "/my\\_templates — manage your templates"
 
     await update.message.reply_text(
         reply,
         parse_mode="Markdown",
     )
-
-
-async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await cmd_start(update, context)
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +34,6 @@ def setup_application(token: str) -> Application:
     app = Application.builder().token(token).build()
 
     # General commands
-    app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
 
     # Domain handlers — each module registers its own handlers
@@ -67,6 +41,7 @@ def setup_application(token: str) -> Application:
     # host.register(app)
     # templates.register(app)
     # admin.register(app)
+    profile.register(app)
 
     return app
 
@@ -77,8 +52,9 @@ async def set_bot_commands(app: Application) -> None:
     Call this once after the bot is initialised.
     """
     commands = [
-        BotCommand("start", "Welcome message & help"),
-        BotCommand("help", "Show available commands"),
+        BotCommand("start", "Main menu"),
+        BotCommand("profile", "View and edit your profile"),
+        BotCommand("help", "Help"),
         # BotCommand("events", "Browse upcoming events"),
         # BotCommand("myevents", "Events you're signed up for"),
         # BotCommand("create_event", "Create a new event (hosts)"),
