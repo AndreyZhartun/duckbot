@@ -1,19 +1,19 @@
-name: Sync to Hugging Face hub
 on:
   push:
     branches: [main]
-  # to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
 jobs:
-  sync-to-hub:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Deploy to Oracle VM
+        uses: appleboy/ssh-action@v1
         with:
-          fetch-depth: 0
-          lfs: true
-      - name: Push to hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://capybaraoutside:$HF_TOKEN@huggingface.co/spaces/capybaraoutside/duckbot main
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/duckbot
+            git pull
+            source venv/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl restart duckbot
