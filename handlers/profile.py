@@ -166,8 +166,7 @@ async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     user = await db.update_display_name(update.effective_user.id, new_name)
     await update.message.reply_text(
-        f"Имя изменено на: <b>{escape(user.display_name)}</b>\n",
-        COMMAND_END_MESSAGE_FOOTER,
+        f"Имя изменено на: <b>{escape(user.display_name)}</b>\n{COMMAND_END_MESSAGE_FOOTER}",
         parse_mode=ParseMode.HTML,
     )
     return ConversationHandler.END
@@ -175,9 +174,8 @@ async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def cancel_name_change(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
-        f"Изменение имени отменено\n",
-        COMMAND_END_MESSAGE_FOOTER
-        )
+        f"Изменение имени отменено\n{COMMAND_END_MESSAGE_FOOTER}"
+    )
     return ConversationHandler.END
 
 
