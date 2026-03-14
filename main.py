@@ -8,7 +8,7 @@ import sys
 from dotenv import load_dotenv
 
 from bot import set_bot_commands, setup_application
-from services.scheduler import start_scheduler
+# from services.scheduler import start_scheduler
 
 load_dotenv()
 
