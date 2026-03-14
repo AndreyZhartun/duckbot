@@ -8,29 +8,33 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 # ---------------------------------------------------------------------------
-# Engine — created once at import time, reused for the life of the process
+# Engine — created lazily as needed, reused for the life of the process
 # ---------------------------------------------------------------------------
 
-def _make_engine():
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        raise RuntimeError("DATABASE_URL environment variable is not set")
-    return create_async_engine(
-        url,
-        pool_size=5,          # max persistent connections
-        max_overflow=10,      # extra connections allowed under load
-        pool_pre_ping=True,   # test connections before use (handles DB restarts)
-        echo=False,           # set True temporarily to log all SQL for debugging
-    )
+_engine = None
+_session_factory = None
 
 
-engine = _make_engine()
-
-AsyncSessionFactory = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,   # keep objects usable after commit
-)
+def _get_engine():
+    global _engine, _session_factory
+    if _engine is None:
+        # cannot create on import time because envs have not loaded yet
+        url = os.environ.get("DATABASE_URL")
+        if not url:
+            raise RuntimeError("DATABASE_URL environment variable is not set")
+        _engine = create_async_engine(
+            url,
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,
+            echo=False,
+        )
+        _session_factory = async_sessionmaker(
+            _engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+    return _engine, _session_factory
 
 
 # ---------------------------------------------------------------------------
@@ -47,14 +51,8 @@ class Base(DeclarativeBase):
 
 @asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Usage:
-        async with get_db() as db:
-            result = await db.execute(select(UserORM))
-
-    Automatically commits on success, rolls back on exception.
-    """
-    async with AsyncSessionFactory() as session:
+    _, session_factory = _get_engine()
+    async with session_factory() as session:
         try:
             yield session
             await session.commit()
@@ -64,5 +62,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def close_engine() -> None:
-    """Call on shutdown to release all DB connections cleanly."""
-    await engine.dispose()
+    global _engine, _session_factory
+    if _engine is not None:
+        await _engine.dispose()
+        _engine = None
+        _session_factory = None
