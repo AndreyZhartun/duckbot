@@ -7,8 +7,10 @@ Handles user identity and the /start greeting:
 from __future__ import annotations
 
 import logging
+from html import escape
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -93,11 +95,12 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
     await update.message.reply_text(
-        f"*Привет, {user.display_name}!*\n\n"
+        # TODO make an util fn that escapes the user object fully
+        f"<b>Привет, {escape(user.display_name)}!</b>\n\n"
         f"Это УткоБот 🐸 (версия {BOT_VERSION})*\n\n"
         f"Ваша роль: {_role_label(user.role)}\n\n"
         f"Доступные команды:",
-        parse_mode="Markdown",
+        parse_mode=ParseMode.HTML,
         reply_markup=_build_menu(user.role),
     )
 
@@ -114,7 +117,13 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         tg_username=tg_user.username,
     )
 
-    username_line = f"Telegram: @{user.tg_username}\n" if user.tg_username else ""
+    # TODO dont really need to show username
+    username_line = f"Telegram: @{escape(user.tg_username)}\n" if user.tg_username else ""
+
+    member_since = (
+        user.created_at.strftime("%d %b %Y")
+        if user.created_at else "—"
+    )
 
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton("✏️ Change display name", callback_data=CB_CHANGE_NAME)
@@ -122,11 +131,11 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     await update.message.reply_text(
         f"*Ваш Профиль*\n\n"
-        f"Отображаемое имя: *{user.display_name}*\n"
+        f"Отображаемое имя: *{escape(user.display_name)}*\n"
         f"{username_line}"
         f"Роль: {_role_label(user.role)}\n"
-        f"Создан: {user.created_at.strftime('%d %b %Y') if user.created_at else '—'}",
-        parse_mode="Markdown",
+        f"Создан: {member_since}",
+        parse_mode=ParseMode.HTML,
         reply_markup=keyboard,
     )
 
@@ -158,8 +167,8 @@ async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     user = await db.update_display_name(update.effective_user.id, new_name)
     await update.message.reply_text(
-        f"✅ Display name updated to *{user.display_name}*.",
-        parse_mode="Markdown",
+        f"✅ Display name updated to *{escape(user.display_name)}*.",
+        parse_mode=ParseMode.HTML,
     )
     return ConversationHandler.END
 

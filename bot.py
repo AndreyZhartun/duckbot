@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from telegram import BotCommand, Update
+from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # from handlers import admin, events, host, templates
@@ -23,7 +24,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await update.message.reply_text(
         reply,
-        parse_mode="Markdown",
+        parse_mode=ParseMode.HTML,
     )
 
 
