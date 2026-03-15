@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS events (
     start_time          TIMESTAMPTZ NOT NULL,
     end_time            TIMESTAMPTZ NOT NULL,
     is_weekly_instance  BOOLEAN NOT NULL DEFAULT false,
-    template_id         UUID REFERENCES event_templates(id) ON DELETE SET NULL,
+    -- template_id         UUID REFERENCES event_templates(id) ON DELETE SET NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
  
