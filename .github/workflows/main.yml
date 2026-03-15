@@ -12,8 +12,26 @@ jobs:
           username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
+            set -e   # stop on any error
+
             cd /home/ubuntu/duckbot
+
             git pull
             source venv/bin/activate
             pip install -r requirements.txt
+            
+            echo "--- Running DB seed ---"
+
+            PGPASSWORD="$PGPASSWORD" psql \
+              -U botuser \
+              -d duckdb \
+              -h localhost \
+              -f init.sql
+            
+            echo "DB seed complete."
+
             sudo systemctl restart duckbot
+            sleep 3
+            sudo systemctl is-active --quiet duckbot && echo "Bot is running." || echo "WARNING: bot failed to start."
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
