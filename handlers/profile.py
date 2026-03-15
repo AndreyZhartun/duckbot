@@ -2,12 +2,14 @@
 Handles user identity and the /start greeting:
   /start   — personalised greeting with role-aware inline buttons
   /profile — show current profile with option to change display name
+
+All user-provided content is escaped with html.escape() before being
+inserted into HTML-parsed messages, preventing any HTML injection.
 """
 
 from __future__ import annotations
 
 import logging
-from html import escape
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
@@ -20,6 +22,7 @@ from telegram.ext import (
     filters,
 )
 
+from handlers.utils import escape_user
 from models.models import User, UserRole
 from services import db
 from constants import BOT_VERSION
@@ -33,7 +36,18 @@ logger = logging.getLogger(__name__)
 WAITING_FOR_NAME = 0
 
 CB_CHANGE_NAME = "profile_change_name"
-CB_CANCEL_NAME = "profile_cancel_name"
+
+
+# Callback data for menu buttons
+CB_MENU_EVENTS = "menu_events"
+CB_MENU_MY_EVENTS = "menu_myevents"
+CB_MENU_PROFILE = "menu_profile"
+CB_MENU_CREATE_EVENT = "menu_create_event"
+CB_MENU_MY_HOSTED = "menu_my_hosted"
+CB_MENU_CREATE_TEMPLATE = "menu_create_template"
+CB_MENU_MY_TEMPLATES = "menu_my_templates"
+CB_MENU_USERS = "menu_users"
+CB_MENU_ALL_EVENTS = "menu_all_events"
 
 
 # ---------------------------------------------------------------------------
@@ -41,27 +55,23 @@ CB_CANCEL_NAME = "profile_cancel_name"
 # ---------------------------------------------------------------------------
 
 def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
-    """
-    Returns an inline keyboard showing only the actions available to this role.
-    Buttons are grouped into rows of 2 for readability.
-    """
     user_buttons = [
-        # InlineKeyboardButton("📅 Events", switch_inline_query_current_chat="/events"),
-        # InlineKeyboardButton("🎟 My Signups", switch_inline_query_current_chat="/myevents"),
-        InlineKeyboardButton("👤 Мой профиль", switch_inline_query_current_chat="/profile"),
+        # InlineKeyboardButton("📅 Events", callback_data=CB_MENU_EVENTS),
+        # InlineKeyboardButton("🎟 My Signups", callback_data=CB_MENU_MY_EVENTS),
+        InlineKeyboardButton("👤 Мой профиль", callback_data=CB_MENU_PROFILE),
     ]
 
-    host_buttons = [
-        InlineKeyboardButton("➕ Create Event", switch_inline_query_current_chat="/create_event"),
-        InlineKeyboardButton("🎪 My Events", switch_inline_query_current_chat="/my_hosted"),
-        InlineKeyboardButton("🔁 Create Template", switch_inline_query_current_chat="/create_template"),
-        InlineKeyboardButton("📋 My Templates", switch_inline_query_current_chat="/my_templates"),
-    ]
+    # host_buttons = [
+    #     InlineKeyboardButton("➕ Create Event", callback_data=CB_MENU_CREATE_EVENT),
+    #     InlineKeyboardButton("🎪 My Events", callback_data=CB_MENU_MY_HOSTED),
+    #     InlineKeyboardButton("🔁 Create Template", callback_data=CB_MENU_CREATE_TEMPLATE),
+    #     InlineKeyboardButton("📋 My Templates", callback_data=CB_MENU_MY_TEMPLATES),
+    # ]
 
-    admin_buttons = [
-        InlineKeyboardButton("👥 All Users", switch_inline_query_current_chat="/users"),
-        InlineKeyboardButton("🗂 All Events", switch_inline_query_current_chat="/all_events"),
-    ]
+    # admin_buttons = [
+    #     InlineKeyboardButton("👥 All Users", callback_data=CB_MENU_USERS),
+    #     InlineKeyboardButton("🗂 All Events", callback_data=CB_MENU_ALL_EVENTS),
+    # ]
 
     all_buttons = user_buttons[:]
 
@@ -75,13 +85,43 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+async def cb_menu_dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handles all main menu button presses by sending the matching command
+    response directly, without requiring the user to type anything.
+    """
+    query = update.callback_query
+    await query.answer()
+
+    # Map each callback to the handler function it should invoke
+    dispatch = {
+        # CB_MENU_EVENTS: "events",
+        # CB_MENU_MY_EVENTS: "myevents",
+        CB_MENU_PROFILE: "profile",
+        # CB_MENU_CREATE_EVENT: "create_event",
+        # CB_MENU_MY_HOSTED: "my_hosted",
+        # CB_MENU_CREATE_TEMPLATE: "create_template",
+        # CB_MENU_MY_TEMPLATES: "my_templates",
+        # CB_MENU_USERS: "users",
+        # CB_MENU_ALL_EVENTS: "all_events",
+    }
+
+    command = dispatch.get(query.data)
+    if command:
+        # Send the command as if the user typed it — triggers the correct handler
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"/{command}",
+        )
+
+
 def _role_label(role: UserRole) -> str:
     return {
         UserRole.USER: "👤 Посетитель",
         UserRole.TRUSTED: "⭐ Доверенный",
         UserRole.HOST: "🎲 Организатор",
         UserRole.ADMIN: "⚔️ Администратор",
-        UserRole.OWNER: "🔧 Создатель",
+        UserRole.OWNER: "🔧 Разработчик",
     }.get(role, role.value)
 
 
@@ -91,15 +131,14 @@ def _role_label(role: UserRole) -> str:
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_user = update.effective_user
-    user = await db.get_or_create_user(
+    user = escape_user(await db.get_or_create_user(
         telegram_id=tg_user.id,
         full_name=tg_user.full_name,
         tg_username=tg_user.username,
-    )
+    ))
 
     await update.message.reply_text(
-        # TODO make an util fn that escapes the user object fully
-        f"<b>Привет, {escape(user.display_name)}!</b>\n\n"
+        f"<b>Привет, {user.display_name}!</b>\n\n"
         f"Это УткоБот 🐸 (версия {BOT_VERSION})\n\n"
         f"Ваша роль: {_role_label(user.role)}\n\n"
         f"Доступные команды:",
@@ -114,11 +153,12 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tg_user = update.effective_user
-    user = await db.get_or_create_user(
+    
+    user = escape_user(await db.get_or_create_user(
         telegram_id=tg_user.id,
         full_name=tg_user.full_name,
         tg_username=tg_user.username,
-    )
+    ))
 
     member_since = (
         user.created_at.strftime("%d %b %Y")
@@ -131,7 +171,7 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     await update.message.reply_text(
         f"<b>Ваш Профиль</b>\n\n"
-        f"Отображаемое имя: <b>{escape(user.display_name)}</b>\n"
+        f"Отображаемое имя: <b>{user.display_name}</b>\n"
         f"Роль: {_role_label(user.role)}\n"
         f"Создан: {member_since}",
         parse_mode=ParseMode.HTML,
@@ -164,9 +204,10 @@ async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text(f"Имя должно быть не больше {MAX_NAME_LENGTH} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
-    user = await db.update_display_name(update.effective_user.id, new_name)
+    user = escape_user(await db.update_display_name(update.effective_user.id, new_name))
+    
     await update.message.reply_text(
-        f"Имя изменено на: <b>{escape(user.display_name)}</b>\n{COMMAND_END_MESSAGE_FOOTER}",
+        f"Имя изменено на: <b>{user.display_name}</b>\n{COMMAND_END_MESSAGE_FOOTER}",
         parse_mode=ParseMode.HTML,
     )
     return ConversationHandler.END
@@ -197,3 +238,7 @@ def register(app) -> None:
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("profile", cmd_profile))
     app.add_handler(name_change_conv)
+
+    # Menu button callbacks — pattern matches all CB_MENU_* values
+    menu_pattern = "^menu_"
+    app.add_handler(CallbackQueryHandler(cb_menu_dispatch, pattern=menu_pattern))
