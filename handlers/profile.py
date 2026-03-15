@@ -22,7 +22,7 @@ from telegram.ext import (
     filters,
 )
 
-from handlers.utils import escape_user
+from utils.parsing import escape_user
 from models.models import User, UserRole
 from services import db
 from constants import BOT_VERSION
