@@ -124,7 +124,7 @@ async def cmd_schedule(
 
     week_label = f"{monday.strftime('%-d %b')} – {sunday.strftime('%-d %b %Y')}"
     await update.effective_message.reply_text(
-        f"📅 <b>Schedule {week_label}</b>\n\n{full_schedule}",
+        f"📅 <b>Расписание {week_label}</b>\n\n{full_schedule}",
         parse_mode=ParseMode.HTML,
     )
 
@@ -146,7 +146,7 @@ async def cmd_upcoming(
         await update.effective_message.reply_text("No upcoming events after this week.")
         return
 
-    lines = ["<b>Upcoming events (after this week)</b>\n"]
+    lines = ["<b>События после этой недели</b>\n"]
     for event in events:
         room_label = ROOM_LABELS.get(event.room, event.room.value)
         date_str = event.start_time.strftime("%-d %b %Y")

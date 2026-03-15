@@ -86,7 +86,7 @@ async def cmd_create_event(
     # a future template flow, pre-fill fields and skip those steps here.
 
     await update.effective_message.reply_text(
-        "🎉 <b>New event</b> — Step 1/5\n\nWhat's the event name?",
+        "🎉 <b>Новое событие</b> — Шаг 1/5\n\nВведите название",
         parse_mode=ParseMode.HTML,
     )
     return CREATE_NAME
@@ -99,7 +99,7 @@ async def received_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         InlineKeyboardButton("Skip", callback_data=CB_SKIP)
     ]])
     await update.message.reply_text(
-        "Step 2/5 — Description? (optional)",
+        "Шаг 2/5 — Описание? (опционально)",
         reply_markup=keyboard,
     )
     return CREATE_DESC
@@ -122,7 +122,7 @@ async def _ask_room(message) -> int:
         [InlineKeyboardButton(label, callback_data=f"{CB_ROOM}:{room.value}")]
         for room, label in ROOM_LABELS.items()
     ])
-    await message.reply_text("Step 3/5 — Which room?", reply_markup=keyboard)
+    await message.reply_text("Шаг 3/5 — Какая комната?", reply_markup=keyboard)
     return CREATE_ROOM
 
 
@@ -131,7 +131,7 @@ async def received_room(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     await query.answer()
     context.user_data["room"] = RoomChoice(query.data.split(":")[1])
     await query.message.reply_text(
-        "Step 4/5 — Which day?\nFormat: <code>DD/MM/YYYY</code> or <code>DD.MM.YYYY</code>",
+        "Шаг 4/5 — Какой день?\nФормат: <code>дд/мм/гггг</code> или <code>дд.мм.гггг</code>",
         parse_mode=ParseMode.HTML,
     )
     return CREATE_DAY
@@ -149,9 +149,9 @@ async def received_day(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     context.user_data["day"] = day
     await update.message.reply_text(
-        "Step 5/5 — Start and end time?\n"
-        "Format: <code>HH:MM HH:MM</code> e.g. <code>14:00 17:00</code>\n"
-        "Allowed range: 07:00 – 22:00",
+        "Шаг 5/5 — Время начала и конца?\n"
+        "Формат: два времени через пробел (<code>HH:MM HH:MM</code>), например <code>14:00 17:00</code>\n"
+        "Доступное время: 07:00 – 22:00",
         parse_mode=ParseMode.HTML,
     )
     return CREATE_START
@@ -187,7 +187,7 @@ async def received_times(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     room_label = ROOM_LABELS.get(event.room, event.room.value)
     desc_line = f"\n{escape(event.description)}" if event.description else ""
     await update.message.reply_text(
-        f"✅ <b>Event created!</b>\n\n"
+        f"✅ <b>Мероприятие создано!</b>\n\n"
         f"<b>{escape(event.name)}</b>{desc_line}\n"
         f"📅 {event.start_time.strftime('%d %b %Y, %H:%M')} – {event.end_time.strftime('%H:%M')}\n"
         f"📍 {room_label}",
