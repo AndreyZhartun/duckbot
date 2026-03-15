@@ -52,11 +52,11 @@ class EventORM(Base):
     start_time: Mapped[datetime] = mapped_column(nullable=False)
     end_time: Mapped[datetime] = mapped_column(nullable=False)
     is_weekly_instance: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    template_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("event_templates.id", use_alter=True, name="fk_event_template"),
-        nullable=True,
-    )
+    # template_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    #     UUID(as_uuid=True),
+    #     ForeignKey("event_templates.id", use_alter=True, name="fk_event_template"),
+    #     nullable=True,
+    # )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now(), nullable=False

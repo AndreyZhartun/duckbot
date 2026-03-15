@@ -142,7 +142,7 @@ def _orm_to_event(row: EventORM) -> Event:
         start_time=row.start_time,
         end_time=row.end_time,
         is_weekly_instance=row.is_weekly_instance,
-        template_id=str(row.template_id) if row.template_id else None,
+        # template_id=str(row.template_id) if row.template_id else None,
     )
  
  
@@ -154,7 +154,7 @@ async def create_event(
     start_time: datetime,
     end_time: datetime,
     is_weekly_instance: bool = False,
-    template_id: Optional[str] = None,
+    # template_id: Optional[str] = None,
 ) -> Event:
     async with get_db() as db:
         row = EventORM(
@@ -165,7 +165,7 @@ async def create_event(
             start_time=start_time,
             end_time=end_time,
             is_weekly_instance=is_weekly_instance,
-            template_id=template_id,
+            # template_id=template_id,
         )
         db.add(row)
         await db.flush()

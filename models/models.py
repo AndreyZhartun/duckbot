@@ -55,7 +55,7 @@ class Event:
     start_time:         datetime
     end_time:           datetime
     is_weekly_instance: bool         = False
-    template_id:        Optional[str] = None  # set when created from a template
+    # template_id:        Optional[str] = None  # set when created from a template
 
 
 # ---------------------------------------------------------------------------
