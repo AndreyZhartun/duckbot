@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # from handlers import admin, events, host, templates
-from handlers import profile
+from handlers import profile, host, schedule
 from services.database import close_engine
 from constants import BOT_VERSION
 
@@ -40,7 +40,8 @@ def setup_application(token: str) -> Application:
 
     # Domain handlers — each module registers its own handlers
     # events.register(app)
-    # host.register(app)
+    host.register(app)
+    schedule.register(app)
     # templates.register(app)
     # admin.register(app)
     profile.register(app)
@@ -56,15 +57,12 @@ async def set_bot_commands(app: Application) -> None:
         BotCommand("start", "Главное меню"),
         BotCommand("profile", "Мой профиль"),
         BotCommand("help", "Помощь"),
-        # BotCommand("events", "Browse upcoming events"),
-        # BotCommand("myevents", "Events you're signed up for"),
-        # BotCommand("create_event", "Create a new event (hosts)"),
-        # BotCommand("my_hosted", "Manage your hosted events (hosts)"),
-        # BotCommand("create_template", "Create a weekly template (hosts)"),
-        # BotCommand("my_templates", "Manage weekly templates (hosts)"),
-        # BotCommand("users", "List all users (admin)"),
-        # BotCommand("set_role", "Change a user's role (admin)"),
-        # BotCommand("all_events", "See all events (admin)"),
-        # BotCommand("cancel", "Cancel current multi-step flow"),
+        BotCommand("schedule", "This week's schedule"),
+        BotCommand("upcoming", "Events after this week"),
+        BotCommand("create_event", "Create a new event (hosts)"),
+        BotCommand("users", "List all users (admin)"),
+        BotCommand("set_role", "Change a user role (admin)"),
+        BotCommand("all_events", "See all events (admin)"),
+        BotCommand("cancel", "Cancel current multi-step flow"),
     ]
     await app.bot.set_my_commands(commands)

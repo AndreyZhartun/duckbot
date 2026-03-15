@@ -39,15 +39,12 @@ CB_CHANGE_NAME = "profile_change_name"
 
 
 # Callback data for menu buttons
-CB_MENU_EVENTS = "menu_events"
-CB_MENU_MY_EVENTS = "menu_myevents"
-CB_MENU_PROFILE = "menu_profile"
-CB_MENU_CREATE_EVENT = "menu_create_event"
-CB_MENU_MY_HOSTED = "menu_my_hosted"
-CB_MENU_CREATE_TEMPLATE = "menu_create_template"
-CB_MENU_MY_TEMPLATES = "menu_my_templates"
-CB_MENU_USERS = "menu_users"
-CB_MENU_ALL_EVENTS = "menu_all_events"
+CB_MENU_SCHEDULE      = "menu_schedule"
+CB_MENU_UPCOMING      = "menu_upcoming"
+CB_MENU_PROFILE       = "menu_profile"
+CB_MENU_CREATE_EVENT  = "menu_create_event"
+# CB_MENU_USERS         = "menu_users"
+# CB_MENU_ALL_EVENTS    = "menu_all_events"
 
 
 # ---------------------------------------------------------------------------
@@ -93,12 +90,14 @@ async def cb_menu_dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     query = update.callback_query
     await query.answer()
 
+    from handlers import host, schedule
+
     # Map each callback to the handler function it should invoke
     dispatch = {
-        # CB_MENU_EVENTS: "events",
-        # CB_MENU_MY_EVENTS: "myevents",
-        CB_MENU_PROFILE: "profile",
-        # CB_MENU_CREATE_EVENT: "create_event",
+        CB_MENU_SCHEDULE: schedule.cmd_schedule,
+        CB_MENU_UPCOMING: schedule.cmd_upcoming,
+        CB_MENU_PROFILE: cmd_profile,
+        CB_MENU_CREATE_EVENT: host.cmd_create_event,
         # CB_MENU_MY_HOSTED: "my_hosted",
         # CB_MENU_CREATE_TEMPLATE: "create_template",
         # CB_MENU_MY_TEMPLATES: "my_templates",
@@ -106,13 +105,10 @@ async def cb_menu_dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         # CB_MENU_ALL_EVENTS: "all_events",
     }
 
-    command = dispatch.get(query.data)
-    if command:
-        # Send the command as if the user typed it — triggers the correct handler
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"/{command}",
-        )
+    handler = dispatch.get(query.data)
+
+    if handler:
+        await handler(update, context)
 
 
 def _role_label(role: UserRole) -> str:
