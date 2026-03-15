@@ -26,7 +26,7 @@ from telegram.ext import (
     filters,
 )
 
-from handlers.utils import ROOM_LABELS, escape_user, parse_time_input, require_role
+from handlers.utils import ROOM_LABELS, escape_user, require_role
 from models.models import RoomChoice, User, UserRole
 from services import db
 
