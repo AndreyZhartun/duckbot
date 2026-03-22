@@ -198,4 +198,5 @@ async def cmd_upcoming(
 
 def register(app) -> None:
     app.add_handler(CommandHandler("schedule", cmd_schedule))
+    app.add_handler(CommandHandler("nextweek", cmd_nextweek))
     app.add_handler(CommandHandler("upcoming", cmd_upcoming))
