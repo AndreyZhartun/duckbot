@@ -50,7 +50,7 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
     ]
 
     host_buttons = [
-        InlineKeyboardButton("➕ Создать событие", callback_data=CB_MENU_CREATE_EVENT),
+        InlineKeyboardButton("➕ Создать событие", callback_data="hce"),
     ]
 
     admin_buttons = [
@@ -74,15 +74,14 @@ async def cb_menu_dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     query = update.callback_query
     await query.answer()
 
-    from handlers import host, schedule
+    from handlers import schedule
 
     dispatch = {
-        CB_MENU_SCHEDULE:     schedule.cmd_schedule,
-        CB_MENU_UPCOMING:     schedule.cmd_upcoming,
-        CB_MENU_PROFILE:      cmd_profile,
-        CB_MENU_CREATE_EVENT: host.cmd_create_event,
-        # CB_MENU_USERS:        admin.cmd_users,
-        # CB_MENU_ALL_EVENTS:   admin.cmd_all_events,
+        CB_MENU_SCHEDULE:  schedule.cmd_schedule,
+        CB_MENU_UPCOMING:  schedule.cmd_upcoming,
+        CB_MENU_PROFILE:   cmd_profile,
+        # CB_MENU_USERS:     admin.cmd_users,
+        # CB_MENU_ALL_EVENTS: admin.cmd_all_events,
     }
 
     handler = dispatch.get(query.data)
@@ -219,5 +218,5 @@ def register(app) -> None:
     app.add_handler(CommandHandler("profile", cmd_profile))
     app.add_handler(name_change_conv)
 
-    # Menu button callbacks — pattern matches all CB_MENU_* values
+    # Menu button callbacks
     app.add_handler(CallbackQueryHandler(cb_menu_dispatch, pattern="^menu_"))

@@ -52,8 +52,9 @@ HOST_AND_ABOVE = (UserRole.HOST, UserRole.ADMIN, UserRole.OWNER)
 ) = range(6)
 
 # Callback prefixes
-CB_ROOM   = "hcr"   # host create room
-CB_SKIP   = "hcs"   # host create skip (description)
+CB_ROOM  = "hcr"   # host create room
+CB_SKIP  = "hcs"   # host create skip (description)
+CB_ENTER = "hce"   # entry point from menu button
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +210,10 @@ async def cancel_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 def register(app) -> None:
     create_conv = ConversationHandler(
-        entry_points=[CommandHandler("create_event", cmd_create_event)],
+        entry_points=[
+            CommandHandler("create_event", cmd_create_event),
+            CallbackQueryHandler(cmd_create_event, pattern=f"^{CB_ENTER}$"),
+        ],
         states={
             CREATE_NAME:  [MessageHandler(filters.TEXT & ~filters.COMMAND, received_name)],
             CREATE_DESC:  [
