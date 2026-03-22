@@ -20,13 +20,19 @@ jobs:
             source venv/bin/activate
             pip install -r requirements.txt
             
-            echo "--- Running DB seed ---"
+            echo "--- Running DB init ---"
 
             PGPASSWORD="$PGPASSWORD" psql \
               -U botuser \
               -d duckdb \
               -h localhost \
               -f deployment/init.sql
+
+            echo "--- Seeding database ---"
+            OWNER_TELEGRAM_ID="${{ secrets.OWNER_TELEGRAM_ID }}" \
+            SEED_ADMINS="${{ secrets.SEED_ADMINS }}" \
+            DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            python deployment/seed.py
             
             echo "DB seed complete."
 

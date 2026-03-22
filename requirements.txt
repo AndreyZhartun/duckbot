@@ -3,3 +3,4 @@ SQLAlchemy[asyncio]
 asyncpg
 apscheduler
 python-dotenv
+babel
