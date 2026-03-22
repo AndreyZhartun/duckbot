@@ -105,22 +105,17 @@ def _fmt_time(minutes: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# /schedule — current week, full day-by-day view
+# Shared week schedule renderer
 # ---------------------------------------------------------------------------
 
-@require_any_role
-async def cmd_schedule(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, user: User
-) -> None:
-    monday, sunday = _week_bounds()
+async def _send_week_schedule(update: Update, monday: date) -> None:
+    sunday = monday + timedelta(days=6)
 
-    # Fetch all events for the week in one query
     events = await db.list_events_in_range(
         start=datetime.combine(monday, datetime.min.time()),
         end=datetime.combine(sunday, datetime.max.time()),
     )
 
-    # Group by date
     by_day: dict[date, list[Event]] = {
         monday + timedelta(days=i): [] for i in range(7)
     }
@@ -130,13 +125,37 @@ async def cmd_schedule(
             by_day[day].append(event)
 
     blocks = [_format_day_schedule(day, day_events) for day, day_events in by_day.items()]
-    full_schedule = "\n\n".join(blocks)
-
     week_label = f"{_fmt_short_date(monday)} – {_fmt_short_date(sunday)} {sunday.year}"
+
     await update.effective_message.reply_text(
-        f"📅 <b>Расписание {week_label}</b>\n\n{full_schedule}",
+        f"📅 <b>Расписание {week_label}</b>\n\n" + "\n\n".join(blocks),
         parse_mode=ParseMode.HTML,
     )
+
+
+# ---------------------------------------------------------------------------
+# /schedule — current week
+# ---------------------------------------------------------------------------
+
+@require_any_role
+async def cmd_schedule(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, user: User
+) -> None:
+    monday, _ = _week_bounds()
+    await _send_week_schedule(update, monday)
+
+
+# ---------------------------------------------------------------------------
+# /nextweek — next week
+# ---------------------------------------------------------------------------
+
+@require_any_role
+async def cmd_nextweek(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, user: User
+) -> None:
+    monday, _ = _week_bounds()
+    next_monday = monday + timedelta(weeks=1)
+    await _send_week_schedule(update, next_monday)
 
 
 # ---------------------------------------------------------------------------
