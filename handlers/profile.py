@@ -1,12 +1,3 @@
-"""
-Handles user identity and the /start greeting:
-  /start   — personalised greeting with role-aware inline buttons
-  /profile — show current profile with option to change display name
-
-All user-provided content is escaped with html.escape() before being
-inserted into HTML-parsed messages, preventing any HTML injection.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -43,8 +34,8 @@ CB_MENU_SCHEDULE      = "menu_schedule"
 CB_MENU_UPCOMING      = "menu_upcoming"
 CB_MENU_PROFILE       = "menu_profile"
 CB_MENU_CREATE_EVENT  = "menu_create_event"
-# CB_MENU_USERS         = "menu_users"
-# CB_MENU_ALL_EVENTS    = "menu_all_events"
+CB_MENU_USERS         = "menu_users"
+CB_MENU_ALL_EVENTS    = "menu_all_events"
 
 
 # ---------------------------------------------------------------------------
@@ -53,27 +44,24 @@ CB_MENU_CREATE_EVENT  = "menu_create_event"
 
 def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
     user_buttons = [
-        # InlineKeyboardButton("📅 Events", callback_data=CB_MENU_EVENTS),
-        # InlineKeyboardButton("🎟 My Signups", callback_data=CB_MENU_MY_EVENTS),
+        InlineKeyboardButton("📅 Расписание", callback_data=CB_MENU_SCHEDULE),
+        InlineKeyboardButton("🔜 События после текущей недели", callback_data=CB_MENU_UPCOMING),
         InlineKeyboardButton("👤 Мой профиль", callback_data=CB_MENU_PROFILE),
     ]
 
-    # host_buttons = [
-    #     InlineKeyboardButton("➕ Create Event", callback_data=CB_MENU_CREATE_EVENT),
-    #     InlineKeyboardButton("🎪 My Events", callback_data=CB_MENU_MY_HOSTED),
-    #     InlineKeyboardButton("🔁 Create Template", callback_data=CB_MENU_CREATE_TEMPLATE),
-    #     InlineKeyboardButton("📋 My Templates", callback_data=CB_MENU_MY_TEMPLATES),
-    # ]
+    host_buttons = [
+        InlineKeyboardButton("➕ Создать событие", callback_data=CB_MENU_CREATE_EVENT),
+    ]
 
-    # admin_buttons = [
-    #     InlineKeyboardButton("👥 All Users", callback_data=CB_MENU_USERS),
-    #     InlineKeyboardButton("🗂 All Events", callback_data=CB_MENU_ALL_EVENTS),
-    # ]
+    admin_buttons = [
+        # InlineKeyboardButton("👥 Все пользователи", callback_data=CB_MENU_USERS),
+        # InlineKeyboardButton("💫 Все события", callback_data=CB_MENU_ALL_EVENTS),
+    ]
 
     all_buttons = user_buttons[:]
 
-    # if role in (UserRole.HOST, UserRole.ADMIN, UserRole.OWNER):
-    #     all_buttons += host_buttons
+    if role in (UserRole.HOST, UserRole.ADMIN, UserRole.OWNER):
+        all_buttons += host_buttons
 
     # if role in (UserRole.ADMIN, UserRole.OWNER):
     #     all_buttons += admin_buttons
@@ -83,30 +71,21 @@ def _build_menu(role: UserRole) -> InlineKeyboardMarkup:
 
 
 async def cb_menu_dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Handles all main menu button presses by sending the matching command
-    response directly, without requiring the user to type anything.
-    """
     query = update.callback_query
     await query.answer()
 
     from handlers import host, schedule
 
-    # Map each callback to the handler function it should invoke
     dispatch = {
-        CB_MENU_SCHEDULE: schedule.cmd_schedule,
-        CB_MENU_UPCOMING: schedule.cmd_upcoming,
-        CB_MENU_PROFILE: cmd_profile,
+        CB_MENU_SCHEDULE:     schedule.cmd_schedule,
+        CB_MENU_UPCOMING:     schedule.cmd_upcoming,
+        CB_MENU_PROFILE:      cmd_profile,
         CB_MENU_CREATE_EVENT: host.cmd_create_event,
-        # CB_MENU_MY_HOSTED: "my_hosted",
-        # CB_MENU_CREATE_TEMPLATE: "create_template",
-        # CB_MENU_MY_TEMPLATES: "my_templates",
-        # CB_MENU_USERS: "users",
-        # CB_MENU_ALL_EVENTS: "all_events",
+        # CB_MENU_USERS:        admin.cmd_users,
+        # CB_MENU_ALL_EVENTS:   admin.cmd_all_events,
     }
 
     handler = dispatch.get(query.data)
-
     if handler:
         await handler(update, context)
 
@@ -192,16 +171,21 @@ async def cb_change_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def received_new_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     new_name = update.message.text.strip()
 
-    if len(new_name) < 2:
+    if len(new_name) < MIN_NAME_LENGTH:
         await update.message.reply_text(f"Имя должно быть не меньше {MIN_NAME_LENGTH} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
-    if len(new_name) > 64:
+    if len(new_name) > MAX_NAME_LENGTH:
         await update.message.reply_text(f"Имя должно быть не больше {MAX_NAME_LENGTH} символов. Введите имя еще раз:")
         return WAITING_FOR_NAME
 
-    user = escape_user(await db.update_display_name(update.effective_user.id, new_name))
-    
+    tg_user = update.effective_user
+    current = await db.get_or_create_user(
+        telegram_id=tg_user.id,
+        full_name=tg_user.full_name,
+        tg_username=tg_user.username,
+    )
+    user = escape_user(await db.update_display_name(current.id, new_name))
     await update.message.reply_text(
         f"Имя изменено на: <b>{user.display_name}</b>\n{COMMAND_END_MESSAGE_FOOTER}",
         parse_mode=ParseMode.HTML,
@@ -236,5 +220,4 @@ def register(app) -> None:
     app.add_handler(name_change_conv)
 
     # Menu button callbacks — pattern matches all CB_MENU_* values
-    menu_pattern = "^menu_"
-    app.add_handler(CallbackQueryHandler(cb_menu_dispatch, pattern=menu_pattern))
+    app.add_handler(CallbackQueryHandler(cb_menu_dispatch, pattern="^menu_"))

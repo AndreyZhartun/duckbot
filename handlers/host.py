@@ -80,7 +80,7 @@ async def cmd_create_event(
     update: Update, context: ContextTypes.DEFAULT_TYPE, user: User
 ) -> int:
     context.user_data.clear()
-    context.user_data["host_id"] = user.telegram_id
+    context.user_data["host_id"] = user.id   # internal UUID
 
     # template_id hook: if context.user_data.get("template_id") is set by
     # a future template flow, pre-fill fields and skip those steps here.
@@ -131,7 +131,7 @@ async def received_room(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     await query.answer()
     context.user_data["room"] = RoomChoice(query.data.split(":")[1])
     await query.message.reply_text(
-        "Шаг 4/5 — Какой день?\nФормат: <code>дд/мм/гггг</code> или <code>дд.мм.гггг</code>",
+        "Шаг 4/5 — Какой день?\nФормат: <code>дд.мм.гггг</code>",
         parse_mode=ParseMode.HTML,
     )
     return CREATE_DAY
@@ -187,7 +187,7 @@ async def received_times(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     room_label = ROOM_LABELS.get(event.room, event.room.value)
     desc_line = f"\n{escape(event.description)}" if event.description else ""
     await update.message.reply_text(
-        f"✅ <b>Мероприятие создано!</b>\n\n"
+        f"✅ <b>Событие создано!</b>\n\n"
         f"<b>{escape(event.name)}</b>{desc_line}\n"
         f"📅 {event.start_time.strftime('%d %b %Y, %H:%M')} – {event.end_time.strftime('%H:%M')}\n"
         f"📍 {room_label}",
@@ -199,7 +199,7 @@ async def received_times(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def cancel_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
-    await update.effective_message.reply_text("❌ Event creation cancelled.")
+    await update.effective_message.reply_text("❌ Создание события отменено")
     return ConversationHandler.END
 
 

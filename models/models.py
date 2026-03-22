@@ -24,25 +24,17 @@ class RoomChoice(str, Enum):
 
 @dataclass
 class User:
-    telegram_id: int
-    # bot-specific name, editable by user
-    # stays the same even if the user changes telegram name
-    display_name: str
-    role: UserRole
-    # users can be added by username
-    tg_username: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    id:           str            # internal UUID — stable forever
+    display_name: str            # bot-specific, editable by the user
+    role:         UserRole
+    telegram_id:  Optional[int]  = None  # None until user starts the bot
+    tg_username:  Optional[str]  = None  # None if user has no TG username
+    created_at:   Optional[datetime] = None
+    updated_at:   Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------
 # Event
-#
-# Future fields to add when implemented:
-#   co_host_ids:  list[int]       — users with full edit/delete rights
-#   signup_count: int             — denormalised counter for display
-#   min_people:   int             — minimum to run the event
-#   max_people:   int             — signup cap
 # ---------------------------------------------------------------------------
  
 @dataclass
@@ -50,12 +42,12 @@ class Event:
     id:                 str
     name:               str
     description:        str
-    host_id:            int
+    host_id:            str       # references User.id (internal UUID)
     room:               RoomChoice
     start_time:         datetime
     end_time:           datetime
-    is_weekly_instance: bool         = False
-    # template_id:        Optional[str] = None  # set when created from a template
+    is_weekly_instance: bool          = False
+    template_id:        Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

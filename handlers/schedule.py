@@ -86,7 +86,7 @@ def _format_day_schedule(day: date, events: list[Event]) -> str:
 
 
 def _free_slot(start_min: int, end_min: int) -> str:
-    return f"{_fmt_time(start_min)} - {_fmt_time(end_min)} — free"
+    return f"{_fmt_time(start_min)} - {_fmt_time(end_min)} — свободно"
 
 
 def _fmt_time(minutes: int) -> str:

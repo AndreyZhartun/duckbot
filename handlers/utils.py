@@ -20,9 +20,9 @@ from services import db
 logger = logging.getLogger(__name__)
 
 ROOM_LABELS = {
-    RoomChoice.ROOM_A: "🟦 Room A",
-    RoomChoice.ROOM_B: "🟩 Room B",
-    RoomChoice.BOTH: "🟪 Both Rooms",
+    RoomChoice.ROOM_A: "🟦 Комната 1",
+    RoomChoice.ROOM_B: "🟩 Комната 2",
+    RoomChoice.BOTH: "🟪 Обе комнаты",
 }
 
 WEEKDAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
