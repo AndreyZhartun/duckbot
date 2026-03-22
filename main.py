@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 import asyncio
 
 from bot import set_bot_commands, setup_application
-from services.database import close_engine
-# from services.scheduler import start_scheduler
 
 load_dotenv()
 
@@ -42,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def check_env() -> None:
     """Fail fast if required environment variables are missing."""
-    required = ["BOT_TOKEN", "DATABASE_URL"]
+    required = ["BOT_TOKEN", "DATABASE_URL", "OWNER_TELEGRAM_ID"]
     missing = [key for key in required if not os.environ.get(key)]
     if missing:
         logger.critical(f"Missing required environment variables: {', '.join(missing)}")
@@ -90,8 +88,12 @@ def main() -> None:
     except (KeyboardInterrupt, SystemExit):
         logger.info("Shutdown requested.")
     finally:
+        #
         # scheduler.shutdown(wait=False)
-        asyncio.run(close_engine())
+        # The connections are bound to the event loop that run_polling() owns and closes.
+        # Trying to dispose them on a new loop after the fact causes an error. 
+        # The OS cleans up on process exit anyway.
+        # asyncio.run(close_engine())
         logger.info("Bot stopped cleanly.")
 
 

@@ -72,7 +72,7 @@ async def run() -> None:
             )
         )
         await db.execute(stmt)
-        logger.info(f"Owner upserted: telegram_id {owner_id}")
+        logger.info(f"Owner upserted: telegram_id")
 
         # --- Admins ---
         # No telegram_id yet — filled in automatically on first /start
@@ -92,7 +92,7 @@ async def run() -> None:
                 )
             )
             await db.execute(stmt)
-            logger.info(f"Admin upserted: @{username}")
+            logger.info(f"Admin upserted")
 
     await close_engine()
     logger.info("Seed complete.")
