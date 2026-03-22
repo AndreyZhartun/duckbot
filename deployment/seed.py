@@ -11,12 +11,12 @@ Required environment variables:
 Owner display name is set to 'owner' and can be changed via /profile.
 Admin display names are set to their username and overwritten on first /start.
 """
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from __future__ import annotations
 
 import asyncio
 import logging
